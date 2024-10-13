@@ -1,0 +1,7 @@
+Flask
+flask-cors
+faiss-cpu
+numpy
+sentence-transformers
+torch
+PyPDF2
