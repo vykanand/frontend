@@ -5,6 +5,7 @@ import './App.css';
 const App = () => {
     const [jdText, setJdText] = useState('');
     const [results, setResults] = useState([]);
+    const [evaluationResults, setEvaluationResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [file, setFile] = useState(null);
@@ -18,6 +19,16 @@ const App = () => {
                 jd_text: jdText
             });
             setResults(response.data);
+
+            // Automatically evaluate after getting search results
+            if (response.data.length > 0) {
+                const expectedResults = [response.data[0].filename];
+                const evalResponse = await axios.post('http://localhost:5000/evaluate', {
+                    test_queries: [jdText],
+                    expected_results: expectedResults
+                });
+                setEvaluationResults(evalResponse.data);
+            }
         } catch (err) {
             setError('Error fetching results. Please try again.');
         } finally {
@@ -44,8 +55,7 @@ const App = () => {
         try {
             await axios.post('http://localhost:5000/upload', formData);
             alert('File uploaded successfully. Refreshing index...');
-            window.location.reload()
-            // Optionally, you can trigger a refresh of the search results here
+            window.location.reload();
         } catch (err) {
             setError('Error uploading file. Please try again.');
         } finally {
@@ -60,6 +70,13 @@ const App = () => {
 
     return (
         <div className="app">
+            <h2>Upload New Resume:</h2>
+            <input type="file" accept=".pdf" onChange={handleFileChange} />
+            <button className="upload-button" onClick={handleUpload} disabled={uploadLoading}>
+                {uploadLoading ? 'Uploading...' : 'Upload PDF'}
+            </button>
+            <br /><br /><br /><br />
+            
             <h1 className="title">Job Description Search</h1>
             <textarea
                 className="jd-input"
@@ -85,13 +102,17 @@ const App = () => {
                             </li>
                         ))}
                     </ul>
+                    {evaluationResults && (
+                        <div className="evaluation-results">
+                            <h2>Performance Evaluation Results:</h2>
+                            <p><strong>F1 Score:</strong> {evaluationResults.f1_score.toFixed(4)} - {evaluationResults.f1_score < 0.5 ? "A low F1 score suggests that the model is not effectively retrieving relevant resumes." : "This is a decent F1 score."}</p>
+                            <p><strong>Mean Reciprocal Rank (MRR):</strong> {evaluationResults.mrr} - {evaluationResults.mrr < 1 ? "This indicates that the model could improve in retrieving relevant results at the top." : "Your model performs well with the top result being relevant."}</p>
+                            <p><strong>Precision:</strong> {evaluationResults.precision.toFixed(4)} - {evaluationResults.precision < 0.5 ? "This indicates that many of the returned resumes may not match the JD well.Add More Resumes to the system to get better results" : "This is a reasonable precision score."}</p>
+                            <p><strong>Recall:</strong> {evaluationResults.recall.toFixed(4)} - {evaluationResults.recall < 0.5 ? "A low recall indicates that many relevant resumes were missed by the search.Add More Resumes to the system to get better results" : "This is a good recall score."}</p>
+                        </div>
+                    )}
                 </div>
             )}
-            <h2>Upload New resume to db:</h2>
-            <input type="file" accept=".pdf" onChange={handleFileChange} />
-            <button className="upload-button" onClick={handleUpload} disabled={uploadLoading}>
-                {uploadLoading ? 'Uploading...' : 'Upload PDF'}
-            </button>
         </div>
     );
 };

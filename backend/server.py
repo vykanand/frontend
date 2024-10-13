@@ -252,6 +252,47 @@ def refresh_index():
     
     return jsonify({"message": "FAISS index refreshed successfully"}), 200
 
+# Function to evaluate model performance
+def evaluate_model(test_queries, expected_results, pdf_folder):
+    metrics = {
+        'precision': [],
+        'recall': [],
+        'f1_score': [],
+        'mrr': [],
+    }
+    
+    for query, expected in zip(test_queries, expected_results):
+        results = process_jd_and_search_in_faiss(query, pdf_folder)
+
+        true_positives = len([res for res in results if res[0] in expected])
+        false_positives = len([res for res in results if res[0] not in expected])
+        false_negatives = len([exp for exp in expected if exp not in [res[0] for res in results]])
+
+        precision = true_positives / (true_positives + false_positives) if (true_positives + false_positives) > 0 else 0
+        recall = true_positives / (true_positives + false_negatives) if (true_positives + false_negatives) > 0 else 0
+        f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+        metrics['precision'].append(precision)
+        metrics['recall'].append(recall)
+        metrics['f1_score'].append(f1)
+
+        # Calculate MRR
+        ranks = [i + 1 for i, res in enumerate(results) if res[0] in expected]
+        mrr = 1 / ranks[0] if ranks else 0
+        metrics['mrr'].append(mrr)
+
+    return {metric: np.mean(values) for metric, values in metrics.items()}
+
+@app.route('/evaluate', methods=['POST'])
+def evaluate():
+    data = request.json
+    test_queries = data.get('test_queries')
+    expected_results = data.get('expected_results')
+    pdf_folder = "resume-store"
+
+    metrics = evaluate_model(test_queries, expected_results, pdf_folder)
+    return jsonify(metrics)
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
 
