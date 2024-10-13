@@ -1,4 +1,4 @@
-import React, { useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 
@@ -7,6 +7,8 @@ const App = () => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [file, setFile] = useState(null);
+    const [uploadLoading, setUploadLoading] = useState(false);
 
     const handleSearch = async () => {
         setLoading(true);
@@ -20,6 +22,35 @@ const App = () => {
             setError('Error fetching results. Please try again.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        setFile(e.target.files[0]);
+    };
+
+    const handleUpload = async () => {
+        if (!file) {
+            setError('Please select a PDF file to upload.');
+            return;
+        }
+
+        setUploadLoading(true);
+        setError('');
+        
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            await axios.post('http://localhost:5000/upload', formData);
+            alert('File uploaded successfully. Refreshing index...');
+            window.location.reload()
+            // Optionally, you can trigger a refresh of the search results here
+        } catch (err) {
+            setError('Error uploading file. Please try again.');
+        } finally {
+            setUploadLoading(false);
+            setFile(null); // Reset the file input
         }
     };
 
@@ -56,6 +87,11 @@ const App = () => {
                     </ul>
                 </div>
             )}
+            <h2>Upload New resume to db:</h2>
+            <input type="file" accept=".pdf" onChange={handleFileChange} />
+            <button className="upload-button" onClick={handleUpload} disabled={uploadLoading}>
+                {uploadLoading ? 'Uploading...' : 'Upload PDF'}
+            </button>
         </div>
     );
 };
