@@ -8,6 +8,9 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Run tests
+RUN pytest
+
 # Copy the rest of the app
 COPY . .
 

@@ -30,3 +30,5 @@ docker compose up
 You can access the application using http://localhost:3000
 
 Please upload some JD in the folder resume-store to convert and store them in our FAISS Db and then search get best matching resumes to your JD.
+
+### New Update: Unit tests for both frontend and backend have been added to the project.

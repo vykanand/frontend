@@ -2,6 +2,9 @@ services:
   frontend:
     build:
       context: ./frontend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
       - "3000:3000"  # Maps port 1000 on the host to port 3000 in the container
     depends_on:
@@ -10,7 +13,7 @@ services:
   backend:
     build:
       context: ./backend
-    ports:
-      - "5000:5000"  # Maps port 5000 on the host to port 5000 in the container
     volumes:
       - ./backend:/app  # Optional: to reflect code changes immediately
+    ports:
+      - "5000:5000"  # Maps port 5000 on the host to port 5000 in the container

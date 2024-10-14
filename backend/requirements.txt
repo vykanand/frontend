@@ -5,3 +5,4 @@ numpy
 sentence-transformers
 torch
 PyPDF2
+pytest
