@@ -4,5 +4,6 @@ faiss-cpu
 numpy
 sentence-transformers
 torch
-PyPDF2
+nltk
 pytest
+PyPDF2

@@ -7,12 +7,15 @@ WORKDIR /app
 # Copy package.json and install dependencies
 COPY package*.json ./
 RUN npm install
-RUN npm test
 
 # Copy the rest of the app
 COPY . .
 
-# Build the React app
+# Run Tests
+RUN npm test
+
+
+#Run the build
 RUN npm run build
 
 # Install serve to serve the build
