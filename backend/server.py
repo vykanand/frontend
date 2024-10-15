@@ -9,6 +9,7 @@ import nltk
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from nltk.corpus import stopwords
+import math
 
 # Ensure you have the necessary NLTK resources
 nltk.download('stopwords')
@@ -27,6 +28,8 @@ def clean_text(text):
     Returns:
         The cleaned text.
     """
+    if not isinstance(text, str): #Explicit check for non-string types
+        return ""
     # Convert to lowercase
     text = text.lower()
     
@@ -86,6 +89,8 @@ def generate_normalized_embedding(text):
     Returns:
         The normalized embedding as a NumPy array.
     """
+    if text == "":
+        return np.zeros(768)
     embedding = model.encode(text)
     return embedding / np.linalg.norm(embedding)
 
@@ -281,7 +286,7 @@ def evaluate_model(test_queries, expected_results, pdf_folder):
         mrr = 1 / ranks[0] if ranks else 0
         metrics['mrr'].append(mrr)
 
-    return {metric: np.mean(values) for metric, values in metrics.items()}
+    return {metric: np.nanmean(values) for metric, values in metrics.items()}
 
 @app.route('/evaluate', methods=['POST'])
 def evaluate():
@@ -295,4 +300,3 @@ def evaluate():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
