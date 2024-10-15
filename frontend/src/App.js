@@ -55,7 +55,9 @@ const App = () => {
         try {
             await axios.post('http://localhost:5000/upload', formData);
             alert('File uploaded successfully. Refreshing index...');
-            window.location.reload();
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000); //Added a 2 second delay
         } catch (err) {
             setError('Error uploading file. Please try again.');
         } finally {
@@ -69,27 +71,39 @@ const App = () => {
     }, []);
 
     return (
-        <div className="app">
+        <div className="app" data-testid="app">
             <h2>Upload New Resume:</h2>
-            <input type="file" accept=".pdf" onChange={handleFileChange} />
+            <input 
+                type="file" 
+                accept=".pdf" 
+                onChange={handleFileChange} 
+                aria-label="Upload New Resume"
+            />
             <button className="upload-button" onClick={handleUpload} disabled={uploadLoading}>
                 {uploadLoading ? 'Uploading...' : 'Upload PDF'}
             </button>
             <br /><br /><br /><br />
             
             <h1 className="title">Job Description Search</h1>
+            <label htmlFor="jd-input">Enter Job Description:</label>
             <textarea
+                id="jd-input"
                 className="jd-input"
                 placeholder="Enter Job Description..."
                 value={jdText}
                 onChange={(e) => setJdText(e.target.value)}
+                aria-label="Enter Job Description"
             />
             <button className="search-button" onClick={handleSearch} disabled={loading}>
                 {loading ? 'Searching...' : 'Search'}
             </button>
-            {error && <div className="error">{error}</div>}
+            {(error || (!jdText && results.length === 0)) && (
+                <div className="error">
+                    {error || "Please enter a job description"}
+                </div>
+            )}
             {results.length > 0 && (
-                <div className="results">
+                <div className="results" data-testid="search-results">
                     <h2>Matching Resumes:</h2>
                     <ul>
                         {results.map((result, index) => (

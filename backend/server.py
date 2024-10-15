@@ -9,13 +9,12 @@ import nltk
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from nltk.corpus import stopwords
-import math
 
 # Ensure you have the necessary NLTK resources
 nltk.download('stopwords')
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=['http://localhost:3000']) # Added origins parameter
 
 # Function to clean the extracted text
 def clean_text(text):
@@ -54,7 +53,7 @@ def clean_text(text):
 # Function to load PDF files and extract text from them
 def load_pdfs_from_folder(folder_path):
     """
-    Loads PDF files from a given folder and extracts their text.
+    Loads PDF files from a given folder and extracts their text.  Handles potential PyPDF2 errors.
 
     Args:
         folder_path: The path to the folder containing the PDF files.
@@ -64,14 +63,27 @@ def load_pdfs_from_folder(folder_path):
     """
     resumes = []
     for filename in os.listdir(folder_path):
-        if filename.endswith('.pdf'):
-            with open(os.path.join(folder_path, filename), 'rb') as file:
-                reader = PyPDF2.PdfReader(file)
-                text = ""
-                for page in reader.pages:
-                    text += page.extract_text() or ""
-                cleaned_text = clean_text(text)
-                resumes.append((filename, cleaned_text.strip()))
+        if filename.endswith(('.pdf', '.txt')): #Handle both PDF and TXT files
+            try:
+                filepath = os.path.join(folder_path, filename)
+                if filename.endswith('.pdf'):
+                    with open(filepath, 'rb') as file:
+                        reader = PyPDF2.PdfReader(file)
+                        text = ""
+                        for page in reader.pages:
+                            text += page.extract_text() or ""
+                        cleaned_text = clean_text(text)
+                        resumes.append((filename, cleaned_text.strip()))
+                else: #Handle txt files
+                    with open(filepath, 'r') as file:
+                        text = file.read()
+                        cleaned_text = clean_text(text)
+                        resumes.append((filename, cleaned_text.strip()))
+            except PyPDF2.errors.PdfReadError as e:
+                print(f"Error reading PDF file {filename}: {e}")
+                # Handle the error - you might log it, skip the file, or take other actions
+            except Exception as e:
+                print(f"Error reading file {filename}: {e}")
     return resumes
 
 # Load the SentenceTransformer model for embeddings
@@ -112,6 +124,7 @@ def load_and_process_pdfs(folder_path):
     for filename, text in resumes:
         embedding = generate_normalized_embedding(text)
         embeddings.append(embedding)
+    print(f"Embeddings shape before np.array: {np.array(embeddings).shape}")
     return resumes, np.array(embeddings)
 
 # Function to perform the search in FAISS index
@@ -128,6 +141,8 @@ def search_in_faiss(index, query_embedding, resumes, k=5):
     Returns:
         A list of tuples, each containing the filename, similarity score, and the content of the matching resume.
     """
+    print(f"Query embedding shape: {query_embedding.shape}")
+    print(f"Index dimension: {index.d}")
     query_embedding = np.array(query_embedding).reshape(1, -1).astype('float32')
     distances, indices = index.search(query_embedding, k)
 
@@ -156,6 +171,7 @@ def process_jd_and_search_in_faiss(jd_text, folder_path, k=5):
     """
     jd_embedding = generate_normalized_embedding(jd_text.lower())
     resumes, embeddings = load_and_process_pdfs(folder_path)
+    print(f"Embeddings shape: {embeddings.shape}")
 
     index_file_path = "faiss_index.index"
     if os.path.exists(index_file_path):

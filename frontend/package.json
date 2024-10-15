@@ -6,8 +6,7 @@
   "jest": {
   "transform": {
     "^.+\\.jsx?$": "babel-jest"
-  },
-  "testEnvironment": "jsdom"
+  }
   },
   "dependencies": {
     "@testing-library/user-event": "^13.5.0",
